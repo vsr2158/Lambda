@@ -52,8 +52,12 @@ def lambda_handler(event, context):
         # print ('ALL INSTANCES' , all_instance_ids)
 
         for cluster_id in test_cluster_id:
-            print('This one is going down :', cluster_id)
-            response = rds.stop_db_cluster(
-                DBClusterIdentifier=cluster_id
-            )
+            try:
+                print('+++++++++++++++++++++++++++++++++++++')
+                print('Shutting down  :', cluster_id)
+                response = rds.stop_db_cluster(
+                    DBClusterIdentifier=cluster_id
+                )
+            except:
+                continue
             print(response)
