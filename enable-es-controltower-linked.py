@@ -9,7 +9,6 @@ def lambda_handler(event, context):
     """
     Creates a support case requesting to enable Enterprise Support.
     Get the newly created account IF from cloudwatch event/ ControlTower Lifecycle event
-
     """
     account_id = event.get("detail").get("serviceEventDetails").get("createManagedAccountStatus").get("account").get(
         "accountId")
