@@ -17,13 +17,13 @@ def lambda_handler(event, context):
     print(f' Event passed form CloudWatch Event is : {event}')
     print(f' Extracted Account ID : {account_id}')
 
-    case_subject = f'**IGNORE THIS CASE, ASSIGN TO RAOVI@ TAM TESTING ** Enable Enterprise Support on the new account {account_id}'
+    case_subject = f'Enable Enterprise Support on the new account {account_id}'
     case_severity_code = 'low'
     case_category_code = 'other-account-issues'
     case_service_code = 'customer-account'
     accounts = str(account_id)
     case_issue_type = 'customer-service'
-    case_communication_body = f'**IGNORE THIS CASE, ASSIGN TO RAOVI@ TAM TESTING ** Hi AWS! Please enable Enterprise Support on new account ID {account_id} with the same ' \
+    case_communication_body = f'Hi AWS! Please enable Enterprise Support on new account ID {account_id} with the same ' \
                               f'support plan as this payer account. This case was created automatically after the new account was created, responses to this may go unnoticed, please resolve when done.'
 
     response = support_client.create_case(
