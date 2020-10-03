@@ -1,5 +1,3 @@
-import sys
-import botocore
 import boto3
 import datetime as datetime
 # Get list of regions
