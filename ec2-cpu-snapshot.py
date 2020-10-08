@@ -4,13 +4,14 @@ import boto3
 import datetime as datetime
 bucket_name = "137965528627-ec2-rightsizing"
 
-def s3_load_data (item, current_date):
-    objname = 'ec2-cpu'+ "-" + current_date +'.json'
-    s3 = boto3.resource('s3')
-    obj = s3.Object(bucket_name, objname)
-    print("####### Going to upload data to bucket:", bucket_name )
-    print("####### Going to upload following data to the bucket:", item)
-    obj.put(Body=(item))
+def s3_load (filename,key):
+    s3 = boto3.client('s3')
+    try:
+        s3.upload_file(filename, bucket_name, key+"/"+filename)
+        return True
+    except FileNotFoundError:
+        print("The file was not found")
+        return False
 
 def csv_write (list_instance_dict, current_date):
     csv_columns = ['InstanceId', 'TimeStamp_UTC', 'CPU_Average_Percentage_24Hr','CPU_Maximum_Percentage_24Hr' ]
@@ -22,8 +23,19 @@ def csv_write (list_instance_dict, current_date):
             for item in list_instance_dict:
                 print('####################', item)
                 writer.writerow(item)
+            csvfile.close()
     except IOError:
-        print("I/O error")
+        print("I/O error writing csv")
+    return filename
+def json_write (list_instance_dict_json, current_date):
+    try:
+        filename = 'ec2-cpu' + "-" + current_date + '.json'
+        with open (filename, 'w') as jsonfile:
+            jsonfile.write(list_instance_dict_json)
+            jsonfile.close()
+    except IOError:
+        print("I/O error writing json")
+    return filename
 # Get list of regions
 ec2_client = boto3.client("ec2")
 regions = [region['RegionName']
@@ -53,7 +65,6 @@ for region in regions:
         Filters=[{'Name': 'instance-state-name',
                   'Values': ['running']}])
     print(type(instances))
-
     datapoints_all_json = {}
     for instance in instances:
         print (instance.id)
@@ -85,24 +96,26 @@ for region in regions:
                 'Maximum',
             ]
         )
-
+## Lets format the data and store it in a dictionary called instance_dict
         instance_datapoints_av_cpu = metric_response_av_cpu.get("Datapoints")
         instance_datapoints_mx_cpu = metric_response_mx_cpu.get("Datapoints")
         instance_datapoints_av_cpu = instance_datapoints_av_cpu[0]
         instance_datapoints_mx_cpu = instance_datapoints_mx_cpu[0]
-        print (instance_datapoints_mx_cpu)
         instance_dict = {"InstanceId": instance.id}
-        instance_dict["TimeStamp_UTC"] = datetime.datetime.isoformat(current_utc_time)
+        instance_dict["TimeStamp_UTC"] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
         instance_dict["CPU_Average_Percentage_24Hr"] = round(instance_datapoints_av_cpu.get("Average"), 2)
         instance_dict["CPU_Maximum_Percentage_24Hr"] = round(instance_datapoints_mx_cpu.get("Maximum"), 2)
-        print(instance_dict)
+        print('#### Printing instance_dict', instance_dict)
+        ## we have to append this dictionary to a list called list_instance_dict
         list_instance_dict.append(instance_dict)
-        #all_instance_ids.append(instance.id)
-        #other_instance_ids = set(all_instance_ids) - (set(test_instance_ids))
-        #datapoints_all = instance_datapoints_all
-    #print('All Instances in region:', region, all_instance_ids)
+## lets print out list_instance_dict to see if all data is present
+print('#### Printing list_instance_dict' ,list_instance_dict)
+#lets convert the dict to json
 list_instance_dict_json = json.dumps(list_instance_dict)
-print(list_instance_dict)
-print(list_instance_dict_json)
-csv_write(list_instance_dict, current_date)
-s3_load_data(list_instance_dict_json, current_date)
+csv_filename = csv_write(list_instance_dict, current_date)
+json_filename = json_write(list_instance_dict_json, current_date)
+print (csv_filename)
+print(json_filename)
+s3_load(csv_filename, 'csv')
+s3_load(json_filename, 'json')
+
