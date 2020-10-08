@@ -3,6 +3,7 @@ import csv
 import boto3
 import datetime as datetime
 bucket_name = "137965528627-ec2-rightsizing"
+
 def s3_load_data (item, current_date):
     objname = 'ec2-cpu'+ "-" + current_date +'.json'
     s3 = boto3.resource('s3')
@@ -10,6 +11,19 @@ def s3_load_data (item, current_date):
     print("####### Going to upload data to bucket:", bucket_name )
     print("####### Going to upload following data to the bucket:", item)
     obj.put(Body=(item))
+
+def csv_write (list_instance_dict, current_date):
+    csv_columns = ['InstanceId', 'TimeStamp_UTC', 'CPU_Average_Percentage_24Hr','CPU_Maximum_Percentage_24Hr' ]
+    try:
+        filename = 'ec2-cpu' + "-" + current_date + '.csv'
+        with open (filename, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+            writer.writeheader()
+            for item in list_instance_dict:
+                print('####################', item)
+                writer.writerow(item)
+    except IOError:
+        print("I/O error")
 # Get list of regions
 ec2_client = boto3.client("ec2")
 regions = [region['RegionName']
@@ -21,7 +35,9 @@ current_date = current_utc_time.isoformat()
 past_utc_time = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 print("######### Metric Start Time:", past_utc_time)
 print("######### Metric End Time:",current_utc_time)
+##
 #regions = ["us-west-2"]
+##
 datapoints_all = {}
 list_instance_dict = []
 for region in regions:
@@ -88,4 +104,5 @@ for region in regions:
 list_instance_dict_json = json.dumps(list_instance_dict)
 print(list_instance_dict)
 print(list_instance_dict_json)
+csv_write(list_instance_dict, current_date)
 s3_load_data(list_instance_dict_json, current_date)
